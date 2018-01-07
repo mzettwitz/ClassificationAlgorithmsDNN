@@ -24,10 +24,12 @@ training_data = numpy.array(training_dataframe['data'])
 test_dataframe = arff.load(open('../data/fish_test.arff'))
 test_data = numpy.array(test_dataframe['data'])
 
-X_train = training_data[:,0:463].astype(float)
-Y_train = training_data[:,463]
-X_test = test_data[:,0:463].astype(float)
-Y_test = test_data[:,463]
+dims = len(training_data[0])-1
+
+X_train = training_data[:,0:dims].astype(float)
+Y_train = training_data[:,dims]
+X_test = test_data[:,0:dims].astype(float)
+Y_test = test_data[:,dims]
 
 ##################################
 # SETUP
@@ -54,7 +56,7 @@ dummy_y_test = np_utils.to_categorical(encoded_Y_test)
 ##################################
 # create model
 model = Sequential()
-model.add(Dense(512, input_dim=463, activation='relu'))
+model.add(Dense(512, input_dim=dims, activation='relu'))
 model.add(Dense(7, activation='softmax'))
 # compile model
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
@@ -63,9 +65,6 @@ t = time()
 history = model.fit(X_train, dummy_y_train, batch_size=40, epochs=128, verbose=1)
 training_time = time() - t
 
-# plot accuracy over epochs
-pyplot.plot(history.history['acc'])
-pyplot.show()
 
 ##################################
 # TESTING
@@ -76,3 +75,9 @@ test_time = time() - t
 print(test_eval)
 
 
+# plot accuracy over epochs
+line_acc, = pyplot.plot(history.history['acc'], label='accuracy')
+line_loss, = pyplot.plot(history.history['loss'], label='loss')
+pyplot.legend(handles=[line_acc, line_loss])
+pyplot.xlabel('epochs')
+pyplot.show()

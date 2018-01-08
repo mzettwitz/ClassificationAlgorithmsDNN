@@ -4,6 +4,7 @@
 import numpy
 from keras.models import Sequential
 from keras.layers import Dense
+from keras.layers import Dropout
 from keras.utils import np_utils
 from sklearn.metrics import accuracy_score
 from matplotlib import pyplot
@@ -14,12 +15,17 @@ import arff
 ##################################
 # LOAD DATA
 ##################################
-training_dataframe = arff.load(open('../data/fish.arff'))
+training_dataframe = arff.load(open('../data/forest_fire.arff'))
 training_data = numpy.array(training_dataframe['data'])
-test_dataframe = arff.load(open('../data/fish_test.arff'))
+test_dataframe = arff.load(open('../data/forest_fire_test.arff'))
 test_data = numpy.array(test_dataframe['data'])
 
-dims = len(training_data[0])-1
+# get number of classes and dimensions
+with open('../data/forest_fire_test.arff') as fh:
+    arffData = arff.ArffDecoder().decode(fh)
+    dataAttributes = dict(arffData['attributes'])
+classes = len(dataAttributes['class'])
+dims = len(dataAttributes)-1
 
 X_train = training_data[:,0:dims].astype(float)
 Y_train = training_data[:,dims]
@@ -51,13 +57,18 @@ dummy_y_test = np_utils.to_categorical(encoded_Y_test)
 ##################################
 # create model
 model = Sequential()
-model.add(Dense(512, input_dim=dims, activation='relu'))
-model.add(Dense(7, activation='softmax'))
+model.add(Dense(100, input_dim=dims, activation='relu'))
+model.add(Dropout(0.2))
+model.add(Dense(30, activation='relu'))
+model.add(Dense(30, activation='relu'))
+model.add(Dense(80, activation='relu'))
+model.add(Dense(10, activation='relu'))
+model.add(Dense(classes, activation='softmax'))
 # compile model
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 # train model
 t = time()
-history = model.fit(X_train, dummy_y_train, batch_size=40, epochs=128, verbose=1)
+history = model.fit(X_train, dummy_y_train, batch_size=1000, epochs=60, verbose=1)
 training_time = time() - t
 
 

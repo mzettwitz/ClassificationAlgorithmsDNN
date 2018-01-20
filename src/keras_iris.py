@@ -6,31 +6,42 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Dropout
 from keras.utils import np_utils
-from sklearn.metrics import accuracy_score
 from matplotlib import pyplot
 from sklearn.preprocessing import LabelEncoder
 from time import time as time
 import arff
 
 ##################################
+# CONFIGURATION
+##################################
+numberOfHiddenLayers = 6
+denseLayerNeurons = [100, 30, 30, 80, 10]
+activationFunctionsHidden = ['relu', 'relu', 'relu', 'relu', 'relu']
+dropoutLayerPositions = [1] #0-based indices, where 0 is not allowed
+dropoutValues = [0.2]
+activationFunctionOutput = 'softmax'
+batchSize = 1000
+epochs = 60
+
+##################################
 # LOAD DATA
 ##################################
-training_dataframe = arff.load(open('../data/forest_fire.arff'))
+training_dataframe = arff.load(open('../data/forest_fire.arff'))      #<=====================
 training_data = numpy.array(training_dataframe['data'])
-test_dataframe = arff.load(open('../data/forest_fire_test.arff'))
+test_dataframe = arff.load(open('../data/forest_fire_test.arff'))     #<=====================
 test_data = numpy.array(test_dataframe['data'])
 
 # get number of classes and dimensions
-with open('../data/forest_fire_test.arff') as fh:
+with open('../data/forest_fire_test.arff') as fh:        #<=====================
     arffData = arff.ArffDecoder().decode(fh)
     dataAttributes = dict(arffData['attributes'])
 classes = len(dataAttributes['class'])
 dims = len(dataAttributes)-1
 
-X_train = training_data[:,0:dims].astype(float)
-Y_train = training_data[:,dims]
-X_test = test_data[:,0:dims].astype(float)
-Y_test = test_data[:,dims]
+X_train = training_data[:, 0:dims].astype(float)
+Y_train = training_data[:, dims]
+X_test = test_data[:, 0:dims].astype(float)
+Y_test = test_data[:, dims]
 
 ##################################
 # SETUP
@@ -56,19 +67,29 @@ dummy_y_test = np_utils.to_categorical(encoded_Y_test)
 # BUILD DNN
 ##################################
 # create model
+denseCounter = 0
+dropoutCounter = 0
 model = Sequential()
-model.add(Dense(100, input_dim=dims, activation='relu'))
-model.add(Dropout(0.2))
-model.add(Dense(30, activation='relu'))
-model.add(Dense(30, activation='relu'))
-model.add(Dense(80, activation='relu'))
-model.add(Dense(10, activation='relu'))
-model.add(Dense(classes, activation='softmax'))
+for i in range(0, numberOfHiddenLayers):
+    if i == 0:
+        model.add(
+            Dense(denseLayerNeurons[denseCounter], input_dim=dims, activation=activationFunctionsHidden[denseCounter]))
+        denseCounter += 1
+    elif dropoutCounter < len(dropoutLayerPositions) & i == dropoutLayerPositions[dropoutCounter]:
+        model.add(Dropout(dropoutValues[dropoutCounter]))
+        dropoutCounter += 1
+    elif denseCounter < len(denseLayerNeurons):
+        model.add(
+            Dense(denseLayerNeurons[denseCounter], activation=activationFunctionsHidden[denseCounter]))
+        denseCounter += 1
+
+model.add(Dense(classes, activation=activationFunctionOutput))
+
 # compile model
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 # train model
 t = time()
-history = model.fit(X_train, dummy_y_train, batch_size=1000, epochs=60, verbose=1)
+history = model.fit(X_train, dummy_y_train, batch_size=batchSize, epochs=epochs, verbose=1)
 training_time = time() - t
 
 
